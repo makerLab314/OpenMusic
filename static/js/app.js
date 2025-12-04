@@ -70,7 +70,7 @@ function setupEventListeners() {
     
     // Download buttons
     downloadMidi.addEventListener('click', downloadMidiFile);
-    downloadMp3.addEventListener('click', () => alert('MP3 export requires server-side conversion. Please download MIDI file instead.'));
+    downloadMp3.addEventListener('click', () => alert('MP3-Export erfordert serverseitige Konvertierung. Bitte laden Sie stattdessen die MIDI-Datei herunter.'));
     
     // Reset button
     resetBtn.addEventListener('click', resetApp);
@@ -504,25 +504,26 @@ function int32ToBytes(value) {
 }
 
 function variableLengthToBytes(value) {
+    // MIDI Variable Length Quantity encoding
+    // Most significant byte first, continuation bit (0x80) on all but last byte
     const bytes = [];
-    let buffer = value & 0x7F;
     
-    while ((value >>= 7) > 0) {
-        buffer <<= 8;
-        buffer |= 0x80;
-        buffer += (value & 0x7F);
+    // Handle special case of 0
+    if (value === 0) {
+        return [0];
     }
     
-    while (true) {
-        bytes.push(buffer & 0xFF);
-        if (buffer & 0x80) {
-            buffer >>= 8;
-        } else {
-            break;
-        }
+    // Build the bytes in reverse order first
+    bytes.push(value & 0x7F); // Last byte has no continuation bit
+    value >>= 7;
+    
+    while (value > 0) {
+        bytes.push((value & 0x7F) | 0x80); // Set continuation bit
+        value >>= 7;
     }
     
-    return bytes;
+    // Reverse to get most significant byte first
+    return bytes.reverse();
 }
 
 function downloadMidiFile() {
