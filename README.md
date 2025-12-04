@@ -82,6 +82,12 @@ pip install -r requirements.txt
 
 ### Server starten
 
+**Einfacher Start (empfohlen):**
+```bash
+./start_server.sh
+```
+
+**Oder manuell:**
 ```bash
 python app/main.py
 ```
