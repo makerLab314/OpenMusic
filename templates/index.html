@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenMusic - Bild zu Musik Konverter</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 OpenMusic</h1>
+            <p class="subtitle">Verwandeln Sie Bilder in Musik</p>
+        </header>
+
+        <main>
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                    <div class="upload-prompt">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>Bild hier ablegen oder klicken zum Auswählen</p>
+                        <small>PNG, JPG, GIF, BMP (max. 16MB)</small>
+                    </div>
+                </div>
+
+                <div id="imagePreview" class="image-preview hidden">
+                    <img id="previewImg" src="" alt="Vorschau">
+                    <div class="image-info" id="imageInfo"></div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section class="settings-section" id="settingsSection">
+                <h2>Einstellungen</h2>
+                
+                <div class="settings-grid">
+                    <div class="setting-group">
+                        <label for="tempo">Tempo (BPM)</label>
+                        <input type="number" id="tempo" value="120" min="40" max="240">
+                        <span class="setting-value" id="tempoValue">120</span>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="scale">Tonart/Skala</label>
+                        <select id="scale">
+                            <option value="chromatic">Chromatisch</option>
+                            <option value="major">Dur</option>
+                            <option value="minor">Moll</option>
+                            <option value="pentatonic">Pentatonisch</option>
+                            <option value="blues">Blues</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="mode">Spielmodus</label>
+                        <select id="mode">
+                            <option value="linear">Linear</option>
+                            <option value="arpeggio">Arpeggio</option>
+                            <option value="chords">Akkorde</option>
+                            <option value="melodic">Melodisch</option>
+                            <option value="rhythmic">Rhythmisch</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="resolution">Auflösung</label>
+                        <input type="number" id="resolution" value="1" min="1" max="20">
+                        <span class="setting-value" id="resolutionValue">1</span>
+                        <small>Höhere Werte = schnellere Verarbeitung</small>
+                    </div>
+                </div>
+
+                <button id="convertBtn" class="btn btn-primary" disabled>
+                    🎼 In Musik umwandeln
+                </button>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="progress-section hidden" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">Verarbeitung läuft...</p>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section hidden" id="resultsSection">
+                <h2>✅ Konvertierung abgeschlossen!</h2>
+                
+                <div class="results-info" id="resultsInfo"></div>
+
+                <div class="audio-player-container" id="audioPlayerContainer">
+                    <audio id="audioPlayer" controls>
+                        Ihr Browser unterstützt das Audio-Element nicht.
+                    </audio>
+                </div>
+
+                <div class="download-buttons">
+                    <button id="downloadMidi" class="btn btn-secondary">
+                        📥 MIDI herunterladen
+                    </button>
+                    <button id="downloadMp3" class="btn btn-secondary">
+                        📥 MP3 herunterladen
+                    </button>
+                </div>
+
+                <button id="resetBtn" class="btn btn-outline">
+                    🔄 Neues Bild
+                </button>
+            </section>
+
+            <!-- Info Section -->
+            <section class="info-section">
+                <h2>ℹ️ Wie funktioniert es?</h2>
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h3>🔴 Rot (R)</h3>
+                        <p>Bestimmt die Tonhöhe/Note über mehrere Oktaven</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>🟢 Grün (G)</h3>
+                        <p>Bestimmt die Lautstärke (MIDI Velocity)</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>🔵 Blau (B)</h3>
+                        <p>Bestimmt die Notenlänge/Duration</p>
+                    </div>
+                </div>
+                <p class="info-note">
+                    Das Bild wird von links oben nach rechts unten gescannt. 
+                    Jedes Pixel wird in eine Note umgewandelt.
+                </p>
+            </section>
+        </main>
+
+        <footer>
+            <p>OpenMusic © 2025 | Ein Projekt zur Umwandlung von Bildern in Musik</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
