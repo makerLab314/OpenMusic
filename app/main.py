@@ -4,8 +4,13 @@ Main web server for image to music conversion
 """
 from flask import Flask, render_template, request, jsonify, send_file
 import os
+import sys
 import uuid
 from werkzeug.utils import secure_filename
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app.image_processor import ImageProcessor
 from app.music_generator import MusicGenerator
 from app.audio_converter import AudioConverter

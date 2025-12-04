@@ -46,3 +46,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Test files
+test_openmusic.py
