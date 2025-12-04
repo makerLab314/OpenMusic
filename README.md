@@ -88,6 +88,15 @@ python app/main.py
 
 Der Server läuft standardmäßig auf `http://localhost:5000`
 
+**Hinweis für Entwicklung:**
+Um den Debug-Modus zu aktivieren, setzen Sie die Umgebungsvariable:
+```bash
+export FLASK_DEBUG=true
+python app/main.py
+```
+
+**Warnung:** Verwenden Sie niemals Debug-Modus in Produktionsumgebungen!
+
 ### Web-Interface verwenden
 
 1. Öffnen Sie `http://localhost:5000` in Ihrem Browser

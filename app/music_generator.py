@@ -18,6 +18,12 @@ class MusicGenerator:
         'blues': [0, 3, 5, 6, 7, 10],
     }
     
+    # MIDI constants
+    MIDI_NOTE_MIN = 0
+    MIDI_NOTE_MAX = 127
+    MIDI_VELOCITY_MIN = 1  # Minimum velocity to avoid silent notes
+    MIDI_VELOCITY_MAX = 127
+    
     def __init__(self, pixels, tempo=120, scale='chromatic', mode='linear', base_note=60):
         """
         Initialize music generator
@@ -31,7 +37,13 @@ class MusicGenerator:
         """
         self.pixels = pixels
         self.tempo = tempo
-        self.scale = self.SCALES.get(scale, self.SCALES['chromatic'])
+        
+        # Validate and set scale
+        if scale not in self.SCALES:
+            print(f"Warning: Invalid scale '{scale}', using 'chromatic'")
+            scale = 'chromatic'
+        self.scale = self.SCALES[scale]
+        
         self.mode = mode
         self.base_note = base_note
         self.midi = None
@@ -61,9 +73,9 @@ class MusicGenerator:
         
         pitch = self.base_note + (octave * 12) + self.scale[scale_degree]
         
-        # Map G (0-255) to MIDI velocity (0-127)
-        velocity = int((g / 255) * 127)
-        velocity = max(1, velocity)  # Ensure at least velocity 1
+        # Map G (0-255) to MIDI velocity (1-127)
+        velocity = int((g / 255) * self.MIDI_VELOCITY_MAX)
+        velocity = max(self.MIDI_VELOCITY_MIN, velocity)  # Ensure at least velocity 1
         
         # Map B (0-255) to duration (0.1 to 2.0 beats)
         duration = 0.1 + (b / 255) * 1.9
@@ -104,7 +116,7 @@ class MusicGenerator:
             
             for note in arp_notes:
                 # Ensure note is in valid MIDI range
-                if 0 <= note <= 127:
+                if self.MIDI_NOTE_MIN <= note <= self.MIDI_NOTE_MAX:
                     self.midi.addNote(track, channel, note, time, note_duration, velocity)
                     time += note_duration
         
@@ -132,7 +144,7 @@ class MusicGenerator:
             # Add each note in the chord
             for r, g, _ in chord_pixels:
                 pitch, velocity, _ = self.rgb_to_note(r, g, b)
-                if 0 <= pitch <= 127:
+                if self.MIDI_NOTE_MIN <= pitch <= self.MIDI_NOTE_MAX:
                     self.midi.addNote(track, channel, pitch, time, duration, velocity)
             
             time += duration

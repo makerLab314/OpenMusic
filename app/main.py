@@ -26,6 +26,9 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'outputs'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 
+# Constants for music generation
+DEFAULT_NOTE_DURATION = 0.5  # Average note duration in seconds for estimation
+
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
@@ -133,7 +136,7 @@ def convert_to_music():
             'midi_file': midi_filename,
             'mp3_file': mp3_filename if mp3_result else None,
             'note_count': len(pixels),
-            'duration_estimate': len(pixels) * 0.5  # Rough estimate
+            'duration_estimate': len(pixels) * DEFAULT_NOTE_DURATION
         }
         
         return jsonify(response)
@@ -177,4 +180,8 @@ def preview_audio(filename):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Note: Set debug=False in production environments
+    # Debug mode is enabled here for development only
+    import os
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)
