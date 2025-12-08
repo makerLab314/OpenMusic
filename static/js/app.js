@@ -26,6 +26,7 @@ const tempoInput = document.getElementById('tempo');
 const tempoValue = document.getElementById('tempoValue');
 const scaleInput = document.getElementById('scale');
 const modeInput = document.getElementById('mode');
+const scanPatternInput = document.getElementById('scanPattern');
 const resolutionInput = document.getElementById('resolution');
 const resolutionValue = document.getElementById('resolutionValue');
 
@@ -171,6 +172,7 @@ function handleConvert() {
         const tempo = parseInt(tempoInput.value);
         const scale = scaleInput.value;
         const mode = modeInput.value;
+        const scanPattern = scanPatternInput ? scanPatternInput.value : 'linear';
         const numRegions = parseInt(resolutionInput.value) || 1000;
         
         // Process image with region-based interpolation
@@ -182,8 +184,8 @@ function handleConvert() {
         
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Extract pixels using region-based interpolation
-        const pixels = extractRegions(imageData, canvas.width, canvas.height, numRegions);
+        // Extract pixels using selected scanning pattern
+        const pixels = extractPixelsWithPattern(imageData, canvas.width, canvas.height, numRegions, scanPattern);
         
         // Generate MIDI
         setTimeout(() => {
@@ -267,6 +269,170 @@ function extractRegions(imageData, width, height, numRegions) {
     }
     
     return pixels;
+}
+
+// NEW: Extract pixels using different scanning patterns for more musical variety
+function extractPixelsWithPattern(imageData, width, height, numRegions, pattern) {
+    const getPixel = (x, y) => {
+        if (x < 0 || x >= width || y < 0 || y >= height) return null;
+        const index = (y * width + x) * 4;
+        return {
+            r: imageData.data[index],
+            g: imageData.data[index + 1],
+            b: imageData.data[index + 2]
+        };
+    };
+    
+    const pixels = [];
+    const centerX = Math.floor(width / 2);
+    const centerY = Math.floor(height / 2);
+    
+    switch (pattern) {
+        case 'spiral':
+            // Spiral from center outward
+            let x = centerX, y = centerY;
+            let dx = 0, dy = -1;
+            let steps = 1, stepCount = 0, turnCount = 0;
+            
+            for (let i = 0; i < numRegions && (x >= 0 && x < width && y >= 0 && y < height); i++) {
+                const pixel = getPixel(x, y);
+                if (pixel) pixels.push(pixel);
+                
+                x += dx;
+                y += dy;
+                stepCount++;
+                
+                if (stepCount === steps) {
+                    stepCount = 0;
+                    turnCount++;
+                    // Rotate direction: up -> right -> down -> left
+                    const temp = dx;
+                    dx = -dy;
+                    dy = temp;
+                    
+                    if (turnCount === 2) {
+                        turnCount = 0;
+                        steps++;
+                    }
+                }
+            }
+            break;
+            
+        case 'diagonal':
+            // Diagonal scanning from top-left to bottom-right
+            const step = Math.ceil(Math.sqrt(width * height / numRegions));
+            for (let d = 0; d < width + height && pixels.length < numRegions; d++) {
+                for (let i = 0; i <= d; i++) {
+                    const x = i;
+                    const y = d - i;
+                    if (x < width && y < height && x % step === 0 && y % step === 0) {
+                        const pixel = getPixel(x, y);
+                        if (pixel && pixels.length < numRegions) pixels.push(pixel);
+                    }
+                }
+            }
+            break;
+            
+        case 'wave':
+            // Sine wave pattern across the image
+            const amplitude = height / 4;
+            const frequency = 3 * Math.PI / width;
+            for (let i = 0; i < numRegions; i++) {
+                const x = Math.floor((i / numRegions) * width);
+                const y = Math.floor(centerY + amplitude * Math.sin(frequency * x));
+                const pixel = getPixel(x, y);
+                if (pixel) pixels.push(pixel);
+            }
+            break;
+            
+        case 'circular':
+            // Concentric circles from center
+            const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
+            const radiusStep = maxRadius / Math.sqrt(numRegions);
+            let angle = 0;
+            const angleStep = 0.1;
+            
+            for (let i = 0; i < numRegions; i++) {
+                const radius = (i / numRegions) * maxRadius;
+                const x = Math.floor(centerX + radius * Math.cos(angle));
+                const y = Math.floor(centerY + radius * Math.sin(angle));
+                const pixel = getPixel(x, y);
+                if (pixel) pixels.push(pixel);
+                angle += angleStep + (radius / maxRadius) * 0.2; // Vary angle speed
+            }
+            break;
+            
+        case 'random':
+            // Random sampling for unpredictable music
+            const sampled = new Set();
+            while (pixels.length < numRegions) {
+                const x = Math.floor(Math.random() * width);
+                const y = Math.floor(Math.random() * height);
+                const key = `${x},${y}`;
+                if (!sampled.has(key)) {
+                    sampled.add(key);
+                    const pixel = getPixel(x, y);
+                    if (pixel) pixels.push(pixel);
+                }
+            }
+            break;
+            
+        case 'checkerboard':
+            // Checkerboard pattern alternating sampling
+            const cbStep = Math.ceil(Math.sqrt(width * height / (numRegions * 2)));
+            for (let y = 0; y < height && pixels.length < numRegions; y += cbStep) {
+                for (let x = ((y / cbStep) % 2) * cbStep; x < width && pixels.length < numRegions; x += cbStep * 2) {
+                    const pixel = getPixel(x, y);
+                    if (pixel) pixels.push(pixel);
+                }
+            }
+            break;
+            
+        case 'zigzag':
+            // Zigzag pattern left-to-right then right-to-left
+            const zzStep = Math.ceil(Math.sqrt(width * height / numRegions));
+            for (let y = 0; y < height && pixels.length < numRegions; y += zzStep) {
+                if (Math.floor(y / zzStep) % 2 === 0) {
+                    // Left to right
+                    for (let x = 0; x < width && pixels.length < numRegions; x += zzStep) {
+                        const pixel = getPixel(x, y);
+                        if (pixel) pixels.push(pixel);
+                    }
+                } else {
+                    // Right to left
+                    for (let x = width - 1; x >= 0 && pixels.length < numRegions; x -= zzStep) {
+                        const pixel = getPixel(x, y);
+                        if (pixel) pixels.push(pixel);
+                    }
+                }
+            }
+            break;
+            
+        case 'fibonacci':
+            // Fibonacci spiral pattern
+            const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio
+            for (let i = 0; i < numRegions; i++) {
+                const angle = i * 2 * Math.PI / phi;
+                const radius = Math.sqrt(i) * Math.min(width, height) / (2 * Math.sqrt(numRegions));
+                const x = Math.floor(centerX + radius * Math.cos(angle));
+                const y = Math.floor(centerY + radius * Math.sin(angle));
+                const pixel = getPixel(x, y);
+                if (pixel) pixels.push(pixel);
+            }
+            break;
+            
+        default:
+            // Fallback to standard region extraction
+            return extractRegions(imageData, width, height, numRegions);
+    }
+    
+    // If we didn't get enough pixels, fill with remaining from standard extraction
+    if (pixels.length < numRegions) {
+        const remaining = extractRegions(imageData, width, height, numRegions - pixels.length);
+        pixels.push(...remaining);
+    }
+    
+    return pixels.slice(0, numRegions);
 }
 
 function displayResults(data) {
@@ -404,6 +570,143 @@ function generateMIDI(pixels, tempo, scaleName, mode) {
             
             addNote(track, 0, note.pitch, time, duration, note.velocity);
             time += duration * 480;
+        });
+    } else if (mode === 'harmonic') {
+        // Harmonic series mode - uses overtone relationships
+        pixels.forEach((pixel, i) => {
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            const harmonics = [1, 2, 3, 4, 5]; // First 5 harmonics
+            const selectedHarmonic = harmonics[i % harmonics.length];
+            
+            // Adjust pitch based on harmonic
+            let harmonicPitch = note.pitch + Math.floor(12 * Math.log2(selectedHarmonic));
+            harmonicPitch = Math.min(127, Math.max(0, harmonicPitch));
+            
+            addNote(track, 0, harmonicPitch, time, note.duration, note.velocity);
+            time += note.duration * 480;
+        });
+    } else if (mode === 'fibonacci-rhythm') {
+        // Fibonacci sequence for rhythm variations
+        const fib = [1, 1, 2, 3, 5, 8, 13];
+        pixels.forEach((pixel, i) => {
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            const fibIndex = i % fib.length;
+            const rhythmMultiplier = fib[fibIndex] / 8; // Normalize
+            
+            const duration = note.duration * rhythmMultiplier;
+            addNote(track, 0, note.pitch, time, duration, note.velocity);
+            time += duration * 480;
+        });
+    } else if (mode === 'golden-ratio') {
+        // Golden ratio for musical proportions
+        const phi = (1 + Math.sqrt(5)) / 2;
+        pixels.forEach((pixel, i) => {
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            
+            // Apply golden ratio to duration
+            const duration = i % 2 === 0 ? note.duration * phi : note.duration / phi;
+            
+            // Apply golden ratio to velocity
+            const velocity = Math.floor(note.velocity * (1 - (i % 10) / 10 / phi));
+            
+            addNote(track, 0, note.pitch, time, duration, Math.max(1, velocity));
+            time += duration * 480;
+        });
+    } else if (mode === 'wave-modulation') {
+        // Sine wave modulation for pitch and rhythm
+        pixels.forEach((pixel, i) => {
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            const phase = (i / pixels.length) * 2 * Math.PI;
+            
+            // Modulate pitch with sine wave
+            const pitchMod = Math.floor(12 * Math.sin(phase * 3));
+            const modulatedPitch = Math.min(127, Math.max(0, note.pitch + pitchMod));
+            
+            // Modulate duration with cosine wave
+            const durationMod = 0.5 + 0.5 * Math.cos(phase * 2);
+            const duration = note.duration * durationMod;
+            
+            addNote(track, 0, modulatedPitch, time, duration, note.velocity);
+            time += duration * 480;
+        });
+    } else if (mode === 'polyrhythm') {
+        // Polyrhythmic patterns with overlapping notes
+        const rhythms = [3, 4, 5]; // 3:4:5 polyrhythm
+        pixels.forEach((pixel, i) => {
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            
+            rhythms.forEach((rhythm, r) => {
+                if (i % rhythm === 0) {
+                    const pitchOffset = r * 7; // Offset by fifths
+                    const adjustedPitch = Math.min(127, note.pitch + pitchOffset);
+                    const duration = note.duration * (rhythm / 4);
+                    const velocity = Math.floor(note.velocity * (1 - r * 0.2));
+                    
+                    addNote(track, 0, adjustedPitch, time, duration, Math.max(1, velocity));
+                }
+            });
+            
+            time += note.duration * 480;
+        });
+    } else if (mode === 'fractal') {
+        // Fractal pattern - self-similar at different scales
+        const depth = 3;
+        const fractalPattern = (pixel, level, baseTime) => {
+            if (level > depth) return;
+            
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            const scaleFactor = Math.pow(0.5, level);
+            const duration = note.duration * scaleFactor;
+            const velocity = Math.floor(note.velocity * (1 - level * 0.15));
+            
+            addNote(track, 0, note.pitch, baseTime, duration, Math.max(1, velocity));
+            
+            // Recursive calls for fractal pattern
+            if (level < depth) {
+                fractalPattern(pixel, level + 1, baseTime + duration * 240);
+            }
+        };
+        
+        pixels.forEach((pixel, i) => {
+            if (i % 5 === 0) { // Apply fractal to every 5th note
+                fractalPattern(pixel, 0, time);
+            } else {
+                const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+                addNote(track, 0, note.pitch, time, note.duration, note.velocity);
+            }
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            time += note.duration * 480;
+        });
+    } else if (mode === 'palindrome') {
+        // Palindromic structure - plays forward then backward
+        const half = Math.floor(pixels.length / 2);
+        const forwardPixels = pixels.slice(0, half);
+        const backwardPixels = [...forwardPixels].reverse();
+        const allPixels = [...forwardPixels, ...backwardPixels];
+        
+        allPixels.forEach(pixel => {
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            addNote(track, 0, note.pitch, time, note.duration, note.velocity);
+            time += note.duration * 480;
+        });
+    } else if (mode === 'canon') {
+        // Canon mode - melody follows itself at an interval
+        const delayBeats = 4;
+        const delayTicks = delayBeats * 480;
+        const pitchInterval = 7; // Perfect fifth
+        
+        pixels.forEach((pixel, i) => {
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            
+            // Original voice
+            addNote(track, 0, note.pitch, time, note.duration, note.velocity);
+            
+            // Following voice at interval
+            const canonPitch = Math.min(127, note.pitch + pitchInterval);
+            const canonVelocity = Math.floor(note.velocity * 0.7);
+            addNote(track, 0, canonPitch, time + delayTicks, note.duration, canonVelocity);
+            
+            time += note.duration * 480;
         });
     } else {
         // Default to linear
@@ -621,6 +924,7 @@ function resetApp() {
     tempoValue.textContent = '120';
     scaleInput.value = 'chromatic';
     modeInput.value = 'linear';
+    if (scanPatternInput) scanPatternInput.value = 'linear';
     resolutionInput.value = 1000;
     resolutionValue.textContent = '1000';
     
