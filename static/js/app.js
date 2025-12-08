@@ -129,15 +129,14 @@ function handleFile(file) {
 function processImage() {
     if (!uploadedImage) return;
     
-    const resolution = parseInt(resolutionInput.value) || 1;
+    const numRegions = parseInt(resolutionInput.value) || 1000;
     const width = uploadedImage.width;
     const height = uploadedImage.height;
-    const total_pixels = Math.floor(width / resolution) * Math.floor(height / resolution);
     
     displayImageInfo({
         width: width,
         height: height,
-        total_pixels: total_pixels,
+        total_pixels: numRegions,
         mode: 'RGB'
     });
     
@@ -150,7 +149,7 @@ function displayImageInfo(info) {
     imageInfo.innerHTML = `
         <p><strong>Breite:</strong> ${info.width}px</p>
         <p><strong>Höhe:</strong> ${info.height}px</p>
-        <p><strong>Pixel gesamt:</strong> ${info.total_pixels.toLocaleString()}</p>
+        <p><strong>Regionen/Noten:</strong> ${info.total_pixels.toLocaleString()}</p>
         <p><strong>Modus:</strong> ${info.mode}</p>
     `;
 }
@@ -172,9 +171,9 @@ function handleConvert() {
         const tempo = parseInt(tempoInput.value);
         const scale = scaleInput.value;
         const mode = modeInput.value;
-        const resolution = parseInt(resolutionInput.value) || 1;
+        const numRegions = parseInt(resolutionInput.value) || 1000;
         
-        // Reprocess image with current resolution
+        // Process image with region-based interpolation
         const canvas = document.createElement('canvas');
         canvas.width = uploadedImage.width;
         canvas.height = uploadedImage.height;
@@ -183,17 +182,8 @@ function handleConvert() {
         
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Extract pixels with current resolution
-        const pixels = [];
-        for (let y = 0; y < canvas.height; y += resolution) {
-            for (let x = 0; x < canvas.width; x += resolution) {
-                const index = (y * canvas.width + x) * 4;
-                const r = imageData.data[index];
-                const g = imageData.data[index + 1];
-                const b = imageData.data[index + 2];
-                pixels.push({ r, g, b });
-            }
-        }
+        // Extract pixels using region-based interpolation
+        const pixels = extractRegions(imageData, canvas.width, canvas.height, numRegions);
         
         // Generate MIDI
         setTimeout(() => {
@@ -225,6 +215,58 @@ function handleConvert() {
         alert('Fehler bei der Konvertierung');
         hideProgress();
     }
+}
+
+// Extract regions from image by dividing it into a specified number of regions
+// and averaging the RGB values within each region
+function extractRegions(imageData, width, height, numRegions) {
+    const pixels = [];
+    const totalPixels = width * height;
+    
+    // Calculate the size of each region
+    const pixelsPerRegion = Math.floor(totalPixels / numRegions);
+    
+    // Ensure we have at least 1 pixel per region
+    if (pixelsPerRegion < 1) {
+        // If requesting more regions than pixels, fall back to one region per pixel
+        for (let i = 0; i < totalPixels; i++) {
+            const index = i * 4;
+            pixels.push({
+                r: imageData.data[index],
+                g: imageData.data[index + 1],
+                b: imageData.data[index + 2]
+            });
+        }
+        return pixels.slice(0, numRegions);
+    }
+    
+    // Process the image in regions
+    for (let regionIdx = 0; regionIdx < numRegions; regionIdx++) {
+        const startPixel = regionIdx * pixelsPerRegion;
+        // For the last region, extend to the end to include all remaining pixels
+        const endPixel = (regionIdx === numRegions - 1) ? totalPixels : (regionIdx + 1) * pixelsPerRegion;
+        
+        // Average RGB values in this region
+        let sumR = 0, sumG = 0, sumB = 0;
+        let count = 0;
+        
+        for (let pixelIdx = startPixel; pixelIdx < endPixel; pixelIdx++) {
+            const index = pixelIdx * 4;
+            sumR += imageData.data[index];
+            sumG += imageData.data[index + 1];
+            sumB += imageData.data[index + 2];
+            count++;
+        }
+        
+        // Calculate average (count should always be > 0)
+        pixels.push({
+            r: Math.round(sumR / count),
+            g: Math.round(sumG / count),
+            b: Math.round(sumB / count)
+        });
+    }
+    
+    return pixels;
 }
 
 function displayResults(data) {
@@ -579,8 +621,8 @@ function resetApp() {
     tempoValue.textContent = '120';
     scaleInput.value = 'chromatic';
     modeInput.value = 'linear';
-    resolutionInput.value = 1;
-    resolutionValue.textContent = '1';
+    resolutionInput.value = 1000;
+    resolutionValue.textContent = '1000';
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
