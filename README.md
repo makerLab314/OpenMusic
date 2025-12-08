@@ -9,11 +9,12 @@ OpenMusic ist eine **browserbasierte Client-Side-Anwendung**, die Bilder in Musi
 ## ✨ Features
 
 ### Kernfunktionalität
-- **Bildverarbeitung**: Automatisches Scannen von Bildern von links oben nach rechts unten
+- **Bildverarbeitung**: Das Bild wird in konfigurierbare Regionen unterteilt und jede Region wird zu einer Note interpoliert
 - **RGB zu Musik Mapping**:
   - **Rot (R)**: Bestimmt die Tonhöhe/Note (0-255 → mehrere Oktaven)
   - **Grün (G)**: Bestimmt die Lautstärke/Velocity (0-255 → MIDI Velocity 0-127)
   - **Blau (B)**: Bestimmt die Notenlänge/Duration
+- **Regionen-basierte Interpolation**: RGB-Werte werden innerhalb jeder Region gemittelt für kürzere, prägnantere Musik
 - **MIDI-Export**: Standard MIDI-Datei zum direkten Download
 - **Client-Side**: Keine Server-Installation erforderlich - läuft vollständig im Browser
 
@@ -32,7 +33,7 @@ OpenMusic ist eine **browserbasierte Client-Side-Anwendung**, die Bilder in Musi
   - Tempo/BPM (40-240)
   - Tonart/Skala (Chromatisch, Dur, Moll, Pentatonisch, Blues)
   - Spielmodus
-  - Auflösung (Anzahl der verwendeten Pixel)
+  - Anzahl der Regionen (10-50000) - Steuert die Länge der generierten Musik
 - Download-Button für MIDI-Dateien
 
 ## 🚀 Installation
@@ -87,7 +88,7 @@ Die Anwendung funktioniert mit allen modernen Browsern:
    - **Tempo**: Geschwindigkeit der Musik in BPM
    - **Tonart/Skala**: Musikalische Skala für die Noten
    - **Spielmodus**: Art der Musikgenerierung
-   - **Auflösung**: Anzahl der zu überspringenden Pixel (höhere Werte = schnellere Verarbeitung, weniger Noten)
+   - **Anzahl der Regionen**: Anzahl der zu generierenden Noten (weniger Regionen = kürzere Musik)
 4. Klicken Sie auf "In Musik umwandeln"
 5. Laden Sie die MIDI-Datei herunter
 
@@ -99,10 +100,11 @@ Bild hochladen → Einstellungen anpassen → Konvertieren → MIDI herunterlade
 
 ### Performance-Tipps
 
-- **Große Bilder**: Verwenden Sie eine höhere Auflösung (z.B. 50-100), um die Anzahl der Noten zu reduzieren
-- **Kleine Bilder**: Niedrige Auflösung (1-10) für mehr Details
-- Ein 1920x1080 Bild mit Auflösung 1 erzeugt über 2 Millionen Noten!
-- Empfohlene Auflösung für die meisten Bilder: 20-50
+- **Kürzere Musik**: Verwenden Sie weniger Regionen (z.B. 100-500)
+- **Längere, detailliertere Musik**: Verwenden Sie mehr Regionen (z.B. 5000-10000)
+- Das Bild wird automatisch in die gewünschte Anzahl von Regionen unterteilt
+- Jede Region wird zu einer einzigen Note interpoliert (RGB-Werte werden gemittelt)
+- Empfohlene Einstellung für die meisten Bilder: 1000-2000 Regionen
 
 ## 📁 Projektstruktur
 
