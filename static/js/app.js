@@ -243,7 +243,8 @@ function extractRegions(imageData, width, height, numRegions) {
     // Process the image in regions
     for (let regionIdx = 0; regionIdx < numRegions; regionIdx++) {
         const startPixel = regionIdx * pixelsPerRegion;
-        const endPixel = Math.min((regionIdx + 1) * pixelsPerRegion, totalPixels);
+        // For the last region, extend to the end to include all remaining pixels
+        const endPixel = (regionIdx === numRegions - 1) ? totalPixels : (regionIdx + 1) * pixelsPerRegion;
         
         // Average RGB values in this region
         let sumR = 0, sumG = 0, sumB = 0;
@@ -257,14 +258,12 @@ function extractRegions(imageData, width, height, numRegions) {
             count++;
         }
         
-        // Calculate average
-        if (count > 0) {
-            pixels.push({
-                r: Math.round(sumR / count),
-                g: Math.round(sumG / count),
-                b: Math.round(sumB / count)
-            });
-        }
+        // Calculate average (count should always be > 0)
+        pixels.push({
+            r: Math.round(sumR / count),
+            g: Math.round(sumG / count),
+            b: Math.round(sumB / count)
+        });
     }
     
     return pixels;
