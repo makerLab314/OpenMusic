@@ -24,6 +24,25 @@ OpenMusic ist eine **browserbasierte Client-Side-Anwendung**, die Bilder in Musi
 - **Akkorde**: Mehrere benachbarte Pixel werden zu Akkorden kombiniert
 - **Melodisch**: Intelligentes Mapping mit glatten Übergängen
 - **Rhythmisch**: Variationen im Rhythmus basierend auf Farbintensität
+- **Harmonisch**: Verwendet Obertonreihen für natürliche Klangverhältnisse
+- **Fibonacci Rhythmus**: Rhythmische Muster basierend auf der Fibonacci-Folge
+- **Goldener Schnitt**: Musikalische Proportionen nach dem goldenen Schnitt
+- **Wellen-Modulation**: Sinuswellen modulieren Tonhöhe und Rhythmus
+- **Polyrhythmus**: Überlappende rhythmische Muster (3:4:5)
+- **Fraktal**: Selbstähnliche Muster auf verschiedenen Zeitskalen
+- **Palindrom**: Melodie spielt vorwärts und dann rückwärts
+- **Kanon**: Melodie folgt sich selbst in einem Intervall
+
+### Scan-Muster
+- **Linear**: Standard links-nach-rechts, oben-nach-unten Scannen
+- **Spirale**: Spiralförmig vom Zentrum nach außen
+- **Diagonal**: Diagonales Scannen über das Bild
+- **Welle**: Sinuskurven-Muster
+- **Kreisförmig**: Konzentrische Kreise vom Zentrum
+- **Zufällig**: Zufällige Pixel-Auswahl für unvorhersehbare Musik
+- **Schachbrett**: Alternierendes Muster
+- **Zickzack**: Links-rechts alternierendes Scannen
+- **Fibonacci-Spirale**: Basierend auf dem goldenen Schnitt
 
 ### Benutzeroberfläche
 - Modernes, responsives Design
@@ -154,20 +173,79 @@ Die Anwendung implementiert einen vollständigen MIDI-Datei-Generator in reinem 
 
 ## 🎼 Spielmodi erklärt
 
-### Linear
+### Basis-Modi
+
+#### Linear
 Jedes Pixel wird direkt in eine Note umgewandelt. Dies ist der einfachste Modus und folgt exakt den RGB-Werten.
 
-### Arpeggio
+#### Arpeggio
 Jedes Pixel erzeugt ein Arpeggio (Dreiklang), bestehend aus Grundton, Terz und Quinte.
 
-### Akkorde
+#### Akkorde
 Drei aufeinanderfolgende Pixel werden zu einem Akkord kombiniert und gleichzeitig gespielt.
 
-### Melodisch
+#### Melodisch
 Ähnlich wie Linear, aber mit glatteren Übergängen zwischen weit auseinanderliegenden Noten durch Einschub von Durchgangsnoten.
 
-### Rhythmisch
+#### Rhythmisch
 Die Notenlänge variiert basierend auf der Gesamthelligkeit (Intensität) des Pixels.
+
+### Mathematische Modi
+
+#### Harmonisch (Obertonreihe)
+Verwendet die natürliche Obertonreihe (harmonische Serie) für musikalisch konsistente Intervalle. Jede Note basiert auf einem Oberton (1., 2., 3., 4., 5. Oberton), was zu natürlichen Klangverhältnissen führt.
+
+#### Fibonacci Rhythmus
+Nutzt die Fibonacci-Folge (1, 1, 2, 3, 5, 8, 13...) für rhythmische Variationen. Jede Note erhält eine Länge basierend auf einem Fibonacci-Wert, was zu organischen, sich entwickelnden Rhythmen führt.
+
+#### Goldener Schnitt
+Wendet das Verhältnis des goldenen Schnitts (φ ≈ 1.618) auf Notenlängen und Lautstärke an. Dies erzeugt ästhetisch ausgewogene musikalische Proportionen.
+
+#### Wellen-Modulation
+Moduliert Tonhöhe und Rhythmus mit Sinus- und Kosinuswellen. Die Tonhöhe variiert wellenförmig, während die Notenlänge ebenfalls periodisch schwankt.
+
+#### Polyrhythmus
+Erzeugt überlappende rhythmische Schichten im Verhältnis 3:4:5. Verschiedene rhythmische Stimmen spielen gleichzeitig und erzeugen komplexe, vielschichtige Muster.
+
+#### Fraktal
+Verwendet selbstähnliche Muster auf verschiedenen Zeitskalen. Jede Note wird auf mehreren Ebenen wiederholt, wobei jede Ebene kürzer und leiser ist.
+
+#### Palindrom
+Die Melodie wird vorwärts gespielt und dann in umgekehrter Reihenfolge wiederholt, was eine symmetrische Struktur erzeugt.
+
+#### Kanon
+Die Melodie folgt sich selbst nach einer Verzögerung und in einem anderen Tonhöhenintervall (Quinte höher), ähnlich wie "Frère Jacques".
+
+## 🔍 Scan-Muster erklärt
+
+Die Art und Weise, wie das Bild gescannt wird, hat einen enormen Einfluss auf die resultierende Musik:
+
+### Linear
+Standard-Scannen von links nach rechts, oben nach unten. Dies folgt der traditionellen Leserichtung und erzeugt eine vorhersehbare Progression.
+
+### Spirale
+Beginnt in der Bildmitte und spiralt nach außen. Dies erzeugt Musik, die sich vom Zentrum des Bildes entwickelt und kann zu überraschenden melodischen Verläufen führen.
+
+### Diagonal
+Scannt diagonal über das Bild. Dies kombiniert Elemente aus verschiedenen Bereichen des Bildes auf neue Weise.
+
+### Welle
+Folgt einer Sinuskurve durch das Bild. Dies erzeugt wellenförmige melodische Bewegungen, die der visuellen Wellenbewegung entsprechen.
+
+### Kreisförmig
+Scannt in konzentrischen Kreisen vom Zentrum nach außen. Ähnlich wie Spirale, aber mit gleichmäßigeren Radien.
+
+### Zufällig
+Wählt Pixel in zufälliger Reihenfolge aus. Dies erzeugt unvorhersehbare, überraschende Musik, die jedes Mal anders klingt.
+
+### Schachbrett
+Alternierendes Muster wie auf einem Schachbrett. Dies sampelt das Bild gleichmäßig verteilt.
+
+### Zickzack
+Scannt abwechselnd von links nach rechts und von rechts nach links. Dies erzeugt eine Balance zwischen benachbarten Bereichen.
+
+### Fibonacci-Spirale
+Basiert auf dem goldenen Schnitt. Dies folgt natürlichen Wachstumsmustern, die in der Natur häufig vorkommen (wie bei Sonnenblumenkernen oder Schneckenhäusern).
 
 ## 🐛 Troubleshooting
 
