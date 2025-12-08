@@ -172,7 +172,7 @@ function handleConvert() {
         const tempo = parseInt(tempoInput.value);
         const scale = scaleInput.value;
         const mode = modeInput.value;
-        const scanPattern = scanPatternInput ? scanPatternInput.value : 'linear';
+        const scanPattern = scanPatternInput?.value ?? 'linear';
         const numRegions = parseInt(resolutionInput.value) || 1000;
         
         // Process image with region-based interpolation
@@ -365,7 +365,10 @@ function extractPixelsWithPattern(imageData, width, height, numRegions, pattern)
         case 'random':
             // Random sampling for unpredictable music
             const sampled = new Set();
-            while (pixels.length < numRegions) {
+            const maxPixels = width * height;
+            const targetRegions = Math.min(numRegions, maxPixels);
+            
+            while (pixels.length < targetRegions) {
                 const x = Math.floor(Math.random() * width);
                 const y = Math.floor(Math.random() * height);
                 const key = `${x},${y}`;
@@ -373,6 +376,11 @@ function extractPixelsWithPattern(imageData, width, height, numRegions, pattern)
                     sampled.add(key);
                     const pixel = getPixel(x, y);
                     if (pixel) pixels.push(pixel);
+                }
+                
+                // Safety check to prevent infinite loop
+                if (sampled.size >= maxPixels && pixels.length < targetRegions) {
+                    break;
                 }
             }
             break;
@@ -426,10 +434,17 @@ function extractPixelsWithPattern(imageData, width, height, numRegions, pattern)
             return extractRegions(imageData, width, height, numRegions);
     }
     
-    // If we didn't get enough pixels, fill with remaining from standard extraction
+    // If we didn't get enough pixels, sample remaining pixels uniformly
     if (pixels.length < numRegions) {
-        const remaining = extractRegions(imageData, width, height, numRegions - pixels.length);
-        pixels.push(...remaining);
+        const remaining = numRegions - pixels.length;
+        const step = Math.max(1, Math.floor((width * height) / remaining));
+        
+        for (let i = 0; i < width * height && pixels.length < numRegions; i += step) {
+            const x = i % width;
+            const y = Math.floor(i / width);
+            const pixel = getPixel(x, y);
+            if (pixel) pixels.push(pixel);
+        }
     }
     
     return pixels.slice(0, numRegions);
@@ -668,13 +683,14 @@ function generateMIDI(pixels, tempo, scaleName, mode) {
         };
         
         pixels.forEach((pixel, i) => {
+            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            
             if (i % 5 === 0) { // Apply fractal to every 5th note
                 fractalPattern(pixel, 0, time);
             } else {
-                const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
                 addNote(track, 0, note.pitch, time, note.duration, note.velocity);
             }
-            const note = rgbToNote(pixel.r, pixel.g, pixel.b, scale);
+            
             time += note.duration * 480;
         });
     } else if (mode === 'palindrome') {
