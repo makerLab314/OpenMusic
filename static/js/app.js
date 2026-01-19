@@ -20,6 +20,7 @@ const audioPlayerContainer = document.getElementById('audioPlayerContainer');
 const downloadMidi = document.getElementById('downloadMidi');
 const downloadMp3 = document.getElementById('downloadMp3');
 const resetBtn = document.getElementById('resetBtn');
+const autoModeBtn = document.getElementById('autoModeBtn');
 
 // Settings inputs
 const tempoInput = document.getElementById('tempo');
@@ -68,6 +69,9 @@ function setupEventListeners() {
     
     // Convert button
     convertBtn.addEventListener('click', handleConvert);
+    
+    // Auto mode button
+    autoModeBtn.addEventListener('click', handleAutoMode);
     
     // Download buttons
     downloadMidi.addEventListener('click', downloadMidiFile);
@@ -144,6 +148,7 @@ function processImage() {
     settingsSection.classList.remove('hidden');
     settingsSection.classList.add('fade-in');
     convertBtn.disabled = false;
+    autoModeBtn.disabled = false;
 }
 
 function displayImageInfo(info) {
@@ -934,6 +939,7 @@ function resetApp() {
     settingsSection.classList.add('hidden');
     resultsSection.classList.add('hidden');
     convertBtn.disabled = true;
+    autoModeBtn.disabled = true;
     
     // Reset settings to defaults
     tempoInput.value = 120;
@@ -946,4 +952,119 @@ function resetApp() {
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Auto mode constants - all available options
+const AUTO_MODE_SCALES = ['chromatic', 'major', 'minor', 'pentatonic', 'blues'];
+const AUTO_MODE_MODES = ['linear', 'arpeggio', 'chords', 'melodic', 'rhythmic', 'harmonic', 'fibonacci-rhythm', 'golden-ratio', 'wave-modulation', 'polyrhythm', 'fractal', 'palindrome', 'canon'];
+const AUTO_MODE_PATTERNS = ['linear', 'spiral', 'diagonal', 'wave', 'circular', 'random', 'checkerboard', 'zigzag', 'fibonacci'];
+
+async function handleAutoMode() {
+    if (!uploadedImage || !uploadedImage.complete) {
+        alert('Bitte laden Sie zuerst ein Bild hoch');
+        return;
+    }
+    
+    // Check if JSZip is available
+    if (typeof JSZip === 'undefined') {
+        alert('JSZip-Bibliothek nicht geladen. Bitte laden Sie die Seite neu.');
+        return;
+    }
+    
+    try {
+        // Disable buttons during processing
+        convertBtn.disabled = true;
+        autoModeBtn.disabled = true;
+        resultsSection.classList.add('hidden');
+        
+        const tempo = parseInt(tempoInput.value);
+        const numRegions = parseInt(resolutionInput.value) || 1000;
+        
+        // Create canvas and get image data
+        const canvas = document.createElement('canvas');
+        canvas.width = uploadedImage.width;
+        canvas.height = uploadedImage.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(uploadedImage, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Calculate total combinations
+        const totalCombinations = AUTO_MODE_SCALES.length * AUTO_MODE_MODES.length * AUTO_MODE_PATTERNS.length;
+        let processedCount = 0;
+        
+        showProgress(`Auto-Modus: Generiere ${totalCombinations} Kombinationen...`, 0);
+        
+        // Create ZIP file
+        const zip = new JSZip();
+        
+        // Process all combinations
+        for (const scale of AUTO_MODE_SCALES) {
+            for (const mode of AUTO_MODE_MODES) {
+                for (const pattern of AUTO_MODE_PATTERNS) {
+                    // Extract pixels using the specific pattern
+                    const pixels = extractPixelsWithPattern(imageData, canvas.width, canvas.height, numRegions, pattern);
+                    
+                    // Generate MIDI for this combination
+                    const midiBlob = generateMIDI(pixels, tempo, scale, mode);
+                    
+                    // Create filename from combination
+                    const filename = `${scale}_${mode}_${pattern}.mid`;
+                    
+                    // Add to ZIP
+                    zip.file(filename, midiBlob);
+                    
+                    // Update progress
+                    processedCount++;
+                    const percent = Math.round((processedCount / totalCombinations) * 100);
+                    showProgress(`Auto-Modus: ${processedCount}/${totalCombinations} Kombinationen...`, percent);
+                    
+                    // Allow UI to update
+                    await new Promise(resolve => setTimeout(resolve, 1));
+                }
+            }
+        }
+        
+        showProgress('Erstelle ZIP-Datei...', 100);
+        
+        // Generate ZIP file
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        
+        // Download ZIP file
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'openmusic-alle-kombinationen.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        hideProgress();
+        
+        // Show success message
+        resultsInfo.innerHTML = `
+            <p><strong>✅ Auto-Modus abgeschlossen!</strong></p>
+            <p><strong>Kombinationen generiert:</strong> ${totalCombinations}</p>
+            <p><strong>Skalen:</strong> ${AUTO_MODE_SCALES.length}</p>
+            <p><strong>Spielmodi:</strong> ${AUTO_MODE_MODES.length}</p>
+            <p><strong>Scan-Muster:</strong> ${AUTO_MODE_PATTERNS.length}</p>
+            <p><em>ZIP-Datei wurde heruntergeladen</em></p>
+        `;
+        
+        audioPlayerContainer.classList.add('hidden');
+        downloadMidi.disabled = true;
+        downloadMp3.disabled = true;
+        
+        resultsSection.classList.remove('hidden');
+        resultsSection.classList.add('fade-in');
+        
+    } catch (error) {
+        console.error('Auto mode error:', error);
+        alert('Fehler im Auto-Modus: ' + error.message);
+        hideProgress();
+    } finally {
+        // Re-enable buttons
+        convertBtn.disabled = false;
+        autoModeBtn.disabled = false;
+    }
 }
