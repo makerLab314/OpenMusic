@@ -2,6 +2,9 @@
 let uploadedImage = null;
 let currentMidiBlob = null;
 
+// Auto mode configuration
+const AUTO_MODE_UI_YIELD_FREQUENCY = 10; // Yield to UI thread every N iterations
+
 // DOM Elements
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
@@ -954,10 +957,11 @@ function resetApp() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Auto mode constants - all available options
-const AUTO_MODE_SCALES = ['chromatic', 'major', 'minor', 'pentatonic', 'blues'];
-const AUTO_MODE_MODES = ['linear', 'arpeggio', 'chords', 'melodic', 'rhythmic', 'harmonic', 'fibonacci-rhythm', 'golden-ratio', 'wave-modulation', 'polyrhythm', 'fractal', 'palindrome', 'canon'];
-const AUTO_MODE_PATTERNS = ['linear', 'spiral', 'diagonal', 'wave', 'circular', 'random', 'checkerboard', 'zigzag', 'fibonacci'];
+// Helper function to extract option values from a select element
+function getSelectOptionValues(selectElement) {
+    if (!selectElement) return [];
+    return Array.from(selectElement.options).map(option => option.value);
+}
 
 async function handleAutoMode() {
     if (!uploadedImage || !uploadedImage.complete) {
@@ -967,7 +971,7 @@ async function handleAutoMode() {
     
     // Check if JSZip is available
     if (typeof JSZip === 'undefined') {
-        alert('JSZip-Bibliothek nicht geladen. Bitte laden Sie die Seite neu.');
+        alert('JSZip-Bibliothek ist nicht verfügbar. Bitte überprüfen Sie Ihre Internetverbindung oder kontaktieren Sie den Support.');
         return;
     }
     
@@ -980,6 +984,16 @@ async function handleAutoMode() {
         const tempo = parseInt(tempoInput.value);
         const numRegions = parseInt(resolutionInput.value) || 1000;
         
+        // Extract available options dynamically from UI to ensure consistency
+        const scales = getSelectOptionValues(scaleInput);
+        const modes = getSelectOptionValues(modeInput);
+        const patterns = getSelectOptionValues(scanPatternInput);
+        
+        // Validate that we have options to process
+        if (scales.length === 0 || modes.length === 0 || patterns.length === 0) {
+            throw new Error('Keine gültigen Optionen gefunden');
+        }
+        
         // Create canvas and get image data
         const canvas = document.createElement('canvas');
         canvas.width = uploadedImage.width;
@@ -989,7 +1003,7 @@ async function handleAutoMode() {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
         // Calculate total combinations
-        const totalCombinations = AUTO_MODE_SCALES.length * AUTO_MODE_MODES.length * AUTO_MODE_PATTERNS.length;
+        const totalCombinations = scales.length * modes.length * patterns.length;
         let processedCount = 0;
         
         showProgress(`Auto-Modus: Generiere ${totalCombinations} Kombinationen...`, 0);
@@ -998,9 +1012,9 @@ async function handleAutoMode() {
         const zip = new JSZip();
         
         // Process all combinations
-        for (const scale of AUTO_MODE_SCALES) {
-            for (const mode of AUTO_MODE_MODES) {
-                for (const pattern of AUTO_MODE_PATTERNS) {
+        for (const scale of scales) {
+            for (const mode of modes) {
+                for (const pattern of patterns) {
                     // Extract pixels using the specific pattern
                     const pixels = extractPixelsWithPattern(imageData, canvas.width, canvas.height, numRegions, pattern);
                     
@@ -1015,11 +1029,13 @@ async function handleAutoMode() {
                     
                     // Update progress
                     processedCount++;
-                    const percent = Math.round((processedCount / totalCombinations) * 100);
-                    showProgress(`Auto-Modus: ${processedCount}/${totalCombinations} Kombinationen...`, percent);
                     
-                    // Allow UI to update
-                    await new Promise(resolve => setTimeout(resolve, 1));
+                    // Yield to UI thread periodically for better performance
+                    if (processedCount % AUTO_MODE_UI_YIELD_FREQUENCY === 0) {
+                        const percent = Math.round((processedCount / totalCombinations) * 100);
+                        showProgress(`Auto-Modus: ${processedCount}/${totalCombinations} Kombinationen...`, percent);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
                 }
             }
         }
@@ -1045,9 +1061,9 @@ async function handleAutoMode() {
         resultsInfo.innerHTML = `
             <p><strong>✅ Auto-Modus abgeschlossen!</strong></p>
             <p><strong>Kombinationen generiert:</strong> ${totalCombinations}</p>
-            <p><strong>Skalen:</strong> ${AUTO_MODE_SCALES.length}</p>
-            <p><strong>Spielmodi:</strong> ${AUTO_MODE_MODES.length}</p>
-            <p><strong>Scan-Muster:</strong> ${AUTO_MODE_PATTERNS.length}</p>
+            <p><strong>Skalen:</strong> ${scales.length}</p>
+            <p><strong>Spielmodi:</strong> ${modes.length}</p>
+            <p><strong>Scan-Muster:</strong> ${patterns.length}</p>
             <p><em>ZIP-Datei wurde heruntergeladen</em></p>
         `;
         
