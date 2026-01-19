@@ -2,6 +2,9 @@
 let uploadedImage = null;
 let currentMidiBlob = null;
 
+// Auto mode configuration
+const AUTO_MODE_UI_YIELD_FREQUENCY = 10; // Yield to UI thread every N iterations
+
 // DOM Elements
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
@@ -20,6 +23,7 @@ const audioPlayerContainer = document.getElementById('audioPlayerContainer');
 const downloadMidi = document.getElementById('downloadMidi');
 const downloadMp3 = document.getElementById('downloadMp3');
 const resetBtn = document.getElementById('resetBtn');
+const autoModeBtn = document.getElementById('autoModeBtn');
 
 // Settings inputs
 const tempoInput = document.getElementById('tempo');
@@ -68,6 +72,9 @@ function setupEventListeners() {
     
     // Convert button
     convertBtn.addEventListener('click', handleConvert);
+    
+    // Auto mode button
+    autoModeBtn.addEventListener('click', handleAutoMode);
     
     // Download buttons
     downloadMidi.addEventListener('click', downloadMidiFile);
@@ -144,6 +151,7 @@ function processImage() {
     settingsSection.classList.remove('hidden');
     settingsSection.classList.add('fade-in');
     convertBtn.disabled = false;
+    autoModeBtn.disabled = false;
 }
 
 function displayImageInfo(info) {
@@ -934,6 +942,7 @@ function resetApp() {
     settingsSection.classList.add('hidden');
     resultsSection.classList.add('hidden');
     convertBtn.disabled = true;
+    autoModeBtn.disabled = true;
     
     // Reset settings to defaults
     tempoInput.value = 120;
@@ -946,4 +955,132 @@ function resetApp() {
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Helper function to extract option values from a select element
+function getSelectOptionValues(selectElement) {
+    if (!selectElement) return [];
+    return Array.from(selectElement.options).map(option => option.value);
+}
+
+async function handleAutoMode() {
+    if (!uploadedImage || !uploadedImage.complete) {
+        alert('Bitte laden Sie zuerst ein Bild hoch');
+        return;
+    }
+    
+    // Check if JSZip is available
+    if (typeof JSZip === 'undefined') {
+        alert('JSZip-Bibliothek ist nicht verfügbar. Bitte überprüfen Sie Ihre Internetverbindung oder kontaktieren Sie den Support.');
+        return;
+    }
+    
+    try {
+        // Disable buttons during processing
+        convertBtn.disabled = true;
+        autoModeBtn.disabled = true;
+        resultsSection.classList.add('hidden');
+        
+        const tempo = parseInt(tempoInput.value);
+        const numRegions = parseInt(resolutionInput.value) || 1000;
+        
+        // Extract available options dynamically from UI to ensure consistency
+        const scales = getSelectOptionValues(scaleInput);
+        const modes = getSelectOptionValues(modeInput);
+        const patterns = getSelectOptionValues(scanPatternInput);
+        
+        // Validate that we have options to process
+        if (scales.length === 0 || modes.length === 0 || patterns.length === 0) {
+            throw new Error('Keine gültigen Optionen gefunden');
+        }
+        
+        // Create canvas and get image data
+        const canvas = document.createElement('canvas');
+        canvas.width = uploadedImage.width;
+        canvas.height = uploadedImage.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(uploadedImage, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        // Calculate total combinations
+        const totalCombinations = scales.length * modes.length * patterns.length;
+        let processedCount = 0;
+        
+        showProgress(`Auto-Modus: Generiere ${totalCombinations} Kombinationen...`, 0);
+        
+        // Create ZIP file
+        const zip = new JSZip();
+        
+        // Process all combinations
+        for (const scale of scales) {
+            for (const mode of modes) {
+                for (const pattern of patterns) {
+                    // Extract pixels using the specific pattern
+                    const pixels = extractPixelsWithPattern(imageData, canvas.width, canvas.height, numRegions, pattern);
+                    
+                    // Generate MIDI for this combination
+                    const midiBlob = generateMIDI(pixels, tempo, scale, mode);
+                    
+                    // Create filename from combination
+                    const filename = `${scale}_${mode}_${pattern}.mid`;
+                    
+                    // Add to ZIP
+                    zip.file(filename, midiBlob);
+                    
+                    // Update progress
+                    processedCount++;
+                    
+                    // Yield to UI thread periodically for better performance
+                    if (processedCount % AUTO_MODE_UI_YIELD_FREQUENCY === 0) {
+                        const percent = Math.round((processedCount / totalCombinations) * 100);
+                        showProgress(`Auto-Modus: ${processedCount}/${totalCombinations} Kombinationen...`, percent);
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+            }
+        }
+        
+        showProgress('Erstelle ZIP-Datei...', 100);
+        
+        // Generate ZIP file
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        
+        // Download ZIP file
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'openmusic-alle-kombinationen.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        hideProgress();
+        
+        // Show success message
+        resultsInfo.innerHTML = `
+            <p><strong>✅ Auto-Modus abgeschlossen!</strong></p>
+            <p><strong>Kombinationen generiert:</strong> ${totalCombinations}</p>
+            <p><strong>Skalen:</strong> ${scales.length}</p>
+            <p><strong>Spielmodi:</strong> ${modes.length}</p>
+            <p><strong>Scan-Muster:</strong> ${patterns.length}</p>
+            <p><em>ZIP-Datei wurde heruntergeladen</em></p>
+        `;
+        
+        audioPlayerContainer.classList.add('hidden');
+        downloadMidi.disabled = true;
+        downloadMp3.disabled = true;
+        
+        resultsSection.classList.remove('hidden');
+        resultsSection.classList.add('fade-in');
+        
+    } catch (error) {
+        console.error('Auto mode error:', error);
+        alert('Fehler im Auto-Modus: ' + error.message);
+        hideProgress();
+    } finally {
+        // Re-enable buttons
+        convertBtn.disabled = false;
+        autoModeBtn.disabled = false;
+    }
 }
